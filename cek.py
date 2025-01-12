@@ -1,114 +1,97 @@
-import aiohttp
 import os
+import requests
+import asyncio
 from pyrogram import Client, filters
 
 API_ID = "20285194"
 API_HASH = "3f7682be5bd1da9636974ca3d6934753"
 BOT_TOKEN = "7267929870:AAHC2lojziLjI1ujugqM5iHLaDhSiPFlGkU"
 
-DOMAINS_URL = "https://raw.githubusercontent.com/Skiddle-ID/blocklist/main/domains"
-DOMAIN_FILE = "domains.txt"
-domain_cache = []
+DOMAIN_FILE = "domain.txt"
+ADMIN_USER_ID = 1623499141
 
-app = Client("domain_manager_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+app = Client("domain_checker_bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
 
+def check_domain(domain):
+    try:
+        response = requests.get(f"https://api.internetworkpositif.go.id/check?domain={domain}")
+        data = response.json()
+        return data.get("status") == "terblokir"
+    except Exception as e:
+        print(f"Error checking domain {domain}: {e}")
+        return False
 
-def load_domains_from_file():
-    """Memuat daftar domain dari file lokal."""
-    if not os.path.exists(DOMAIN_FILE):
-        with open(DOMAIN_FILE, "w"):
-            pass
-    with open(DOMAIN_FILE, "r") as file:
-        return [line.strip() for line in file if line.strip()]
+def read_domains():
+    if os.path.exists(DOMAIN_FILE):
+        with open(DOMAIN_FILE, "r") as file:
+            return [line.strip() for line in file.readlines()]
+    return []
 
+async def send_notification(client, domain):
+    await client.send_message(ADMIN_USER_ID, f"Domain `{domain}` terblokir!")
 
-def save_domains_to_file():
-    """Menyimpan daftar domain ke file lokal."""
-    with open(DOMAIN_FILE, "w") as file:
-        file.write("\n".join(domain_cache))
+async def check_domains_periodically(client):
+    while True:
+        domains = read_domains()
+        for domain in domains:
+            if check_domain(domain):
+                print(f"Domain {domain} terblokir.")
+                await send_notification(client, domain)
+            else:
+                print(f"Domain {domain} tidak terblokir.")
+        await asyncio.sleep(600)  
 
+@app.on_message(filters.command("info"))
+async def check_all_domains(client, message):
+    domains = read_domains()
+    response_text = "Daftar status domain:\n\n"
+    for domain in domains:
+        is_blocked = check_domain(domain)
+        response_text += f"Domain `{domain}` {'*terblokir*' if is_blocked else '*tidak terblokir*'}.\n"
+    
+    await message.reply(response_text)
 
 @app.on_message(filters.command("add"))
 async def add_domain(client, message):
-    await message.reply("wait")
-    """Menambahkan domain ke daftar cache."""
-    global domain_cache
     command_parts = message.text.split()
-
     if len(command_parts) < 2:
         await message.reply("Gunakan format: /add domain.com")
         return
 
     domain_to_add = command_parts[1].strip()
-
     if not domain_to_add:
         await message.reply("Domain tidak valid.")
         return
 
-    if domain_to_add in domain_cache:
-        await message.reply(f"Domain `{domain_to_add}` sudah ada dalam daftar.")
-    else:
-        domain_cache.append(domain_to_add)
-        save_domains_to_file()
-        await message.reply(f"Domain `{domain_to_add}` berhasil ditambahkan!")
+    with open(DOMAIN_FILE, "a") as file:
+        file.write(domain_to_add + "\n")
 
+    await message.reply(f"Domain `{domain_to_add}` berhasil ditambahkan.")
 
 @app.on_message(filters.command("del"))
 async def delete_domain(client, message):
-    await message.reply("wait")
-    """Menghapus domain dari daftar cache."""
-    global domain_cache
     command_parts = message.text.split()
-
     if len(command_parts) < 2:
         await message.reply("Gunakan format: /del domain.com")
         return
 
     domain_to_delete = command_parts[1].strip()
-
     if not domain_to_delete:
         await message.reply("Domain tidak valid.")
         return
 
-    if domain_to_delete in domain_cache:
-        domain_cache.remove(domain_to_delete)
-        save_domains_to_file()
-        await message.reply(f"Domain `{domain_to_delete}` berhasil dihapus!")
+    domains = read_domains()
+    if domain_to_delete in domains:
+        domains.remove(domain_to_delete)
+        with open(DOMAIN_FILE, "w") as file:
+            file.writelines([domain + "\n" for domain in domains])
+        
+        await message.reply(f"Domain `{domain_to_delete}` berhasil dihapus.")
     else:
-        await message.reply(f"Domain `{domain_to_delete}` tidak ditemukan dalam daftar.")
-
-
-@app.on_message(filters.command("list"))
-async def list_domains(client, message):
-    """Menampilkan daftar semua domain dalam cache."""
-    await message.reply("Sedang memuat daftar domain, harap tunggu...")
-    global domain_cache
-    domain_cache = load_domains_from_file()
-
-    if not domain_cache:
-        await message.reply("Daftar domain kosong.")
-        return
-
-    response_text = "Daftar domain dalam cache:\n\n" + "\n".join(f"- `{domain}`" for domain in domain_cache)
-    await message.reply(response_text)
-
-
-@app.on_message(filters.command("refresh"))
-async def refresh_cache(client, message):
-    """Memperbarui cache daftar domain."""
-    global domain_cache
-    try:
-        domain_cache = await fetch_domain_list()
-        save_domains_to_file()
-        await message.reply("Cache daftar domain berhasil diperbarui!")
-    except Exception as e:
-        await message.reply(f"Gagal memperbarui cache: {e}")
-
+        await message.reply(f"Domain `{domain_to_delete}` tidak ditemukan di daftar.")
 
 @app.on_message(filters.command("cek"))
-async def check_domain(client, message):
-    await message.reply("wait")
-    """Memeriksa apakah domain terblokir."""
+async def check_single_domain(client, message):
     command_parts = message.text.split()
 
     if len(command_parts) < 2:
@@ -121,56 +104,12 @@ async def check_domain(client, message):
         await message.reply("Domain tidak valid.")
         return
 
-    is_blocked = domain_to_check in domain_cache
+    is_blocked = check_domain(domain_to_check)
     result = f"Domain `{domain_to_check}` {'*terblokir*' if is_blocked else '*tidak terblokir*'}."
     await message.reply(result)
 
-@app.on_message(filters.command("info"))
-async def check_all_domains(client, message):
-    """Memeriksa status semua domain dalam cache satu per satu."""
-    global domain_cache
+async def main():
+    await app.start()
+    await check_domains_periodically(app)
 
-    if not domain_cache:
-        await message.reply("Daftar domain kosong.")
-        return
-
-    blocked_domains = []
-    not_blocked_domains = []
-
-    for domain in domain_cache:
-        is_blocked = domain in domain_cache 
-        if is_blocked:
-            blocked_domains.append(f"Domain `{domain}` *terblokir*")
-        else:
-            not_blocked_domains.append(f"Domain `{domain}` *tidak terblokir*")
-
-
-    response_text = "Daftar Status Domain:\n\n"
-
-    if blocked_domains:
-        response_text += "**Terblokir:**\n" + "\n".join(blocked_domains) + "\n\n"
-    else:
-        response_text += "**Terblokir:** Tidak ada domain yang terblokir.\n\n"
-        
-    if not_blocked_domains:
-        response_text += "**Tidak Terblokir:**\n" + "\n".join(not_blocked_domains)
-    else:
-        response_text += "**Tidak Terblokir:** Tidak ada domain yang tidak terblokir."
-
-    await message.reply(response_text)
-
-
-async def fetch_domain_list():
-    """Mengambil daftar domain dari URL."""
-    async with aiohttp.ClientSession() as session:
-        async with session.get(DOMAINS_URL) as response:
-            if response.status == 200:
-                text = await response.text()
-                return text.splitlines()
-            else:
-                raise Exception(f"HTTP {response.status}: {response.reason}")
-
-
-if __name__ == "__main__":
-    domain_cache = load_domains_from_file()
-    app.run()
+app.run(main())
