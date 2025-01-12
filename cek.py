@@ -80,8 +80,11 @@ async def delete_domain(client, message):
 
 @app.on_message(filters.command("list"))
 async def list_domains(client, message):
-    await message.reply("wait")
     """Menampilkan daftar semua domain dalam cache."""
+    await message.reply("Sedang memuat daftar domain, harap tunggu...")
+    global domain_cache
+    domain_cache = load_domains_from_file()
+
     if not domain_cache:
         await message.reply("Daftar domain kosong.")
         return
@@ -127,10 +130,31 @@ async def check_all_domains(client, message):
     """Memeriksa status semua domain dalam cache."""
     global domain_cache
 
-    response_text = "Daftar status domain:\n\n"
+    if not domain_cache:
+        await message.reply("Daftar domain kosong.")
+        return
+        
+    blocked_domains = []
+    not_blocked_domains = []
+
     for domain in domain_cache:
-        is_blocked = domain in domain_cache
-        response_text += f"Domain {domain} {'*terblokir*' if is_blocked else '*tidak terblokir*'}.\n"
+        if domain in domain_cache: 
+            blocked_domains.append(domain)
+        else:
+            not_blocked_domains.append(domain)
+
+    response_text = "Daftar Status Domain:\n\n"
+    if blocked_domains:
+        response_text += "**Terblokir:**\n"
+        response_text += "\n".join(f"- `{domain}`" for domain in blocked_domains) + "\n\n"
+    else:
+        response_text += "**Terblokir:** Tidak ada domain yang terblokir.\n\n"
+
+    if not_blocked_domains:
+        response_text += "**Tidak Terblokir:**\n"
+        response_text += "\n".join(f"- `{domain}`" for domain in not_blocked_domains)
+    else:
+        response_text += "**Tidak Terblokir:** Tidak ada domain yang tidak terblokir."
 
     await message.reply(response_text)
 
