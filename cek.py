@@ -127,32 +127,33 @@ async def check_domain(client, message):
 
 @app.on_message(filters.command("info"))
 async def check_all_domains(client, message):
-    """Memeriksa status semua domain dalam cache."""
+    """Memeriksa status semua domain dalam cache satu per satu."""
     global domain_cache
 
     if not domain_cache:
         await message.reply("Daftar domain kosong.")
         return
-        
+
     blocked_domains = []
     not_blocked_domains = []
 
     for domain in domain_cache:
-        if domain in domain_cache: 
-            blocked_domains.append(domain)
+        is_blocked = domain in domain_cache 
+        if is_blocked:
+            blocked_domains.append(f"Domain `{domain}` *terblokir*")
         else:
-            not_blocked_domains.append(domain)
+            not_blocked_domains.append(f"Domain `{domain}` *tidak terblokir*")
+
 
     response_text = "Daftar Status Domain:\n\n"
+
     if blocked_domains:
-        response_text += "**Terblokir:**\n"
-        response_text += "\n".join(f"- `{domain}`" for domain in blocked_domains) + "\n\n"
+        response_text += "**Terblokir:**\n" + "\n".join(blocked_domains) + "\n\n"
     else:
         response_text += "**Terblokir:** Tidak ada domain yang terblokir.\n\n"
-
+        
     if not_blocked_domains:
-        response_text += "**Tidak Terblokir:**\n"
-        response_text += "\n".join(f"- `{domain}`" for domain in not_blocked_domains)
+        response_text += "**Tidak Terblokir:**\n" + "\n".join(not_blocked_domains)
     else:
         response_text += "**Tidak Terblokir:** Tidak ada domain yang tidak terblokir."
 
