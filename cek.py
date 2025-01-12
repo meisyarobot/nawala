@@ -10,7 +10,7 @@ BOT_TOKEN = "7267929870:AAHC2lojziLjI1ujugqM5iHLaDhSiPFlGkU"
 DOMAIN_FILE = "domain.txt"
 ADMIN_USER_ID = 1623499141
 
-app = Client("domain_checker_bot", api_id=api_id, api_hash=api_hash, bot_token=bot_token)
+app = Client("domain_checker_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 def check_domain(domain):
     try:
