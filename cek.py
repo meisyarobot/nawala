@@ -104,6 +104,7 @@ async def refresh_cache(client, message):
 
 @app.on_message(filters.command("cek"))
 async def check_domain(client, message):
+    await message.reply("wait")
     """Memeriksa apakah domain terblokir."""
     command_parts = message.text.split()
 
@@ -120,6 +121,18 @@ async def check_domain(client, message):
     is_blocked = domain_to_check in domain_cache
     result = f"Domain `{domain_to_check}` {'*terblokir*' if is_blocked else '*tidak terblokir*'}."
     await message.reply(result)
+
+@app.on_message(filters.command("info"))
+async def check_all_domains(client, message):
+    """Memeriksa status semua domain dalam cache."""
+    global domain_cache
+
+    response_text = "Daftar status domain:\n\n"
+    for domain in domain_cache:
+        is_blocked = domain in domain_cache
+        response_text += f"Domain {domain} {'*terblokir*' if is_blocked else '*tidak terblokir*'}.\n"
+
+    await message.reply(response_text)
 
 
 async def fetch_domain_list():
