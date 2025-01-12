@@ -40,7 +40,7 @@ async def check_domain(client, message):
 
     is_blocked = domain_to_check in domain_cache
     result = f"Domain `{domain_to_check}` {'*terblokir*' if is_blocked else '*tidak terblokir*'}."
-    await message.reply(result, parse_mode="markdown")
+    await message.reply(result)
 
 
 @app.on_message(filters.command("refresh"))
