@@ -24,12 +24,12 @@ async def fetch_domain_list():
 
 @app.on_message(filters.command("cek"))
 async def check_domain(client, message):
-    await message.reply("tunggu sebentar bos")
+    CHL = await message.reply("tunggu sebentar bos")
     global domain_cache
     command_parts = message.text.split()
     
     if len(command_parts) < 2:
-        await message.reply("Gunakan format: /cek domain.com")
+        await CHL.edit("Gunakan format: /cek domain.com")
         return
 
     domain_to_check = command_parts[1].strip()
@@ -38,7 +38,7 @@ async def check_domain(client, message):
 
     is_blocked = domain_to_check in domain_cache
     result = f"Domain `{domain_to_check}` {'terblokir' if is_blocked else 'tidak terblokir'}."
-    return await message.edit(result)
+    return await CHL.edit(result)
 
 
 @app.on_message(filters.command("refresh"))
