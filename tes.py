@@ -22,24 +22,44 @@ async def fetch_domain_list():
                 raise Exception(f"Gagal mengambil daftar domain: {response.status}")
 
 
+TRUSTPOSITIF_URL = "https://trustpositif.kominfo.go.id/"
+
+
+async def check_domain_in_trustpositif(domain: str):
+    """Memeriksa apakah domain terblokir melalui TrustPositif Kominfo."""
+    async with aiohttp.ClientSession() as session:
+        params = {'q': domain}  # Query parameter untuk pencarian domain
+        async with session.get(TRUSTPOSITIF_URL, params=params) as response:
+            if response.status == 200:
+                # Parsing HTML untuk mendapatkan status domain
+                soup = BeautifulSoup(await response.text(), 'html.parser')
+                # Menyesuaikan selector untuk menemukan status domain
+                result_text = soup.find("div", {"class": "alert-info"})
+                if result_text:
+                    return "Terblokir" in result_text.text
+                else:
+                    return False  # Tidak ditemukan, anggap tidak terblokir
+            else:
+                raise Exception(f"HTTP {response.status}: {response.reason}")
+
+
 @app.on_message(filters.command("cek"))
 async def check_domain(client, message):
-    CHL = await message.reply("tunggu sebentar bos")
-    global domain_cache
+    """Memeriksa apakah domain terblokir melalui TrustPositif Kominfo."""
     command_parts = message.text.split()
-    
+
     if len(command_parts) < 2:
-        await CHL.edit("Gunakan format: /cek domain.com")
+        await message.reply("Gunakan format: /cek domain.com")
         return
 
     domain_to_check = command_parts[1].strip()
-    if not domain_cache:
-        domain_cache = await fetch_domain_list()
 
-    is_blocked = domain_to_check in domain_cache
-    result = f"Domain `{domain_to_check}` {'terblokir' if is_blocked else 'tidak terblokir'}."
-    return await CHL.edit(result)
-
+    try:
+        is_blocked = await check_domain_in_trustpositif(domain_to_check)
+        result = f"Domain `{domain_to_check}` {'*terblokir*' if is_blocked else '*tidak terblokir*'}."
+        await message.reply(result, parse_mode="markdown")
+    except Exception as e:
+        await message.reply(f"Gagal memeriksa domain: {e}")
 
 @app.on_message(filters.command("refresh"))
 async def refresh_cache(client, message):
