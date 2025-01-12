@@ -4,7 +4,7 @@ from pyrogram import Client, filters
 
 API_ID = "20285194"
 API_HASH = "3f7682be5bd1da9636974ca3d6934753"
-BOT_TOKEN = "7205568594:AAHnOWzalPnRsscu0Rk160rgB9uvpJ8dgsM"
+BOT_TOKEN = "7267929870:AAHC2lojziLjI1ujugqM5iHLaDhSiPFlGkU"
 
 DOMAINS_URL = "https://raw.githubusercontent.com/Skiddle-ID/blocklist/main/domains"
 DOMAIN_FILE = "domains.txt"
