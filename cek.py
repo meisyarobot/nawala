@@ -2,7 +2,7 @@ import aiohttp
 import os
 from pyrogram import Client, filters
 
-API_ID = "20285194" 
+API_ID = "20285194"
 API_HASH = "3f7682be5bd1da9636974ca3d6934753"
 BOT_TOKEN = "7205568594:AAHnOWzalPnRsscu0Rk160rgB9uvpJ8dgsM"
 
@@ -15,10 +15,11 @@ app = Client("domain_manager_bot", api_id=API_ID, api_hash=API_HASH, bot_token=B
 
 def load_domains_from_file():
     """Memuat daftar domain dari file lokal."""
-    if os.path.exists(DOMAIN_FILE):
-        with open(DOMAIN_FILE, "r") as file:
-            return [line.strip() for line in file.readlines()]
-    return []
+    if not os.path.exists(DOMAIN_FILE):
+        with open(DOMAIN_FILE, "w"):
+            pass
+    with open(DOMAIN_FILE, "r") as file:
+        return [line.strip() for line in file if line.strip()]
 
 
 def save_domains_to_file():
@@ -29,6 +30,7 @@ def save_domains_to_file():
 
 @app.on_message(filters.command("add"))
 async def add_domain(client, message):
+    await message.reply("wait")
     """Menambahkan domain ke daftar cache."""
     global domain_cache
     command_parts = message.text.split()
@@ -38,6 +40,10 @@ async def add_domain(client, message):
         return
 
     domain_to_add = command_parts[1].strip()
+
+    if not domain_to_add:
+        await message.reply("Domain tidak valid.")
+        return
 
     if domain_to_add in domain_cache:
         await message.reply(f"Domain `{domain_to_add}` sudah ada dalam daftar.")
@@ -49,6 +55,7 @@ async def add_domain(client, message):
 
 @app.on_message(filters.command("del"))
 async def delete_domain(client, message):
+    await message.reply("wait")
     """Menghapus domain dari daftar cache."""
     global domain_cache
     command_parts = message.text.split()
@@ -58,6 +65,10 @@ async def delete_domain(client, message):
         return
 
     domain_to_delete = command_parts[1].strip()
+
+    if not domain_to_delete:
+        await message.reply("Domain tidak valid.")
+        return
 
     if domain_to_delete in domain_cache:
         domain_cache.remove(domain_to_delete)
@@ -69,30 +80,13 @@ async def delete_domain(client, message):
 
 @app.on_message(filters.command("list"))
 async def list_domains(client, message):
+    await message.reply("wait")
     """Menampilkan daftar semua domain dalam cache."""
-    global domain_cache
-
     if not domain_cache:
         await message.reply("Daftar domain kosong.")
         return
 
-    response_text = "Daftar domain dalam cache:\n\n"
-    for domain in domain_cache:
-        response_text += f"- `{domain}`\n"
-
-    await message.reply(response_text)
-
-
-@app.on_message(filters.command("info"))
-async def check_all_domains(client, message):
-    """Memeriksa status semua domain dalam cache."""
-    global domain_cache
-
-    response_text = "Daftar status domain:\n\n"
-    for domain in domain_cache:
-        is_blocked = domain in domain_cache
-        response_text += f"Domain `{domain}` {'*terblokir*' if is_blocked else '*tidak terblokir*'}.\n"
-
+    response_text = "Daftar domain dalam cache:\n\n" + "\n".join(f"- `{domain}`" for domain in domain_cache)
     await message.reply(response_text)
 
 
@@ -111,7 +105,6 @@ async def refresh_cache(client, message):
 @app.on_message(filters.command("cek"))
 async def check_domain(client, message):
     """Memeriksa apakah domain terblokir."""
-    global domain_cache
     command_parts = message.text.split()
 
     if len(command_parts) < 2:
@@ -120,6 +113,10 @@ async def check_domain(client, message):
 
     domain_to_check = command_parts[1].strip()
 
+    if not domain_to_check:
+        await message.reply("Domain tidak valid.")
+        return
+
     is_blocked = domain_to_check in domain_cache
     result = f"Domain `{domain_to_check}` {'*terblokir*' if is_blocked else '*tidak terblokir*'}."
     await message.reply(result)
@@ -127,16 +124,13 @@ async def check_domain(client, message):
 
 async def fetch_domain_list():
     """Mengambil daftar domain dari URL."""
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(DOMAINS_URL) as response:
-                if response.status == 200:
-                    text = await response.text()
-                    return text.splitlines()
-                else:
-                    raise Exception(f"HTTP {response.status}: {response.reason}")
-    except Exception as e:
-        raise Exception(f"Error fetching domain list: {e}")
+    async with aiohttp.ClientSession() as session:
+        async with session.get(DOMAINS_URL) as response:
+            if response.status == 200:
+                text = await response.text()
+                return text.splitlines()
+            else:
+                raise Exception(f"HTTP {response.status}: {response.reason}")
 
 
 if __name__ == "__main__":
