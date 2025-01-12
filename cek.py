@@ -40,11 +40,11 @@ async def add_domain(client, message):
     domains = load_domains()
 
     if domain_to_add in domains:
-        await message.reply(f"Domain `{domain_to_add}` sudah ada dalam daftar.", parse_mode="markdown")
+        await message.reply(f"Domain `{domain_to_add}` sudah ada dalam daftar.")
     else:
         domains.add(domain_to_add)
         save_domains(domains)
-        await message.reply(f"Domain `{domain_to_add}` berhasil ditambahkan.", parse_mode="markdown")
+        await message.reply(f"Domain `{domain_to_add}` berhasil ditambahkan.")
 
 
 @app.on_message(filters.command("del"))
@@ -60,9 +60,9 @@ async def del_domain(client, message):
     if domain_to_del in domains:
         domains.remove(domain_to_del)
         save_domains(domains)
-        await message.reply(f"Domain `{domain_to_del}` berhasil dihapus.", parse_mode="markdown")
+        await message.reply(f"Domain `{domain_to_del}` berhasil dihapus.")
     else:
-        await message.reply(f"Domain `{domain_to_del}` tidak ditemukan dalam daftar.", parse_mode="markdown")
+        await message.reply(f"Domain `{domain_to_del}` tidak ditemukan dalam daftar.")
 
 
 @app.on_message(filters.command("info"))
